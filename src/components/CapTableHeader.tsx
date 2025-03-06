@@ -67,14 +67,8 @@ const CapTableHeader = ({
           </DropdownMenu>
         </div>
       </div>
-
       <div className="flex items-center justify-between gap-4">
-        <div className="flex-1 max-w-md">
-          <Input
-            placeholder="Search investors..."
-            onChange={(e) => onSearch(e.target.value)}
-          />
-        </div>
+        <div className="flex-1 max-w-md"></div>
 
         <div className="flex items-center gap-2">
           <Button
