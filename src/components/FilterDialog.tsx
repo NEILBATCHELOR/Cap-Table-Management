@@ -11,6 +11,7 @@ import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
+import { investorTypeCategories } from "@/types/investorTypeCategory";
 
 interface FilterDialogProps {
   open?: boolean;
@@ -102,283 +103,32 @@ const FilterDialog = ({
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Investor Type</h3>
             <div className="grid grid-cols-2 gap-2">
-              <h4 className="text-xs font-medium mb-2">
-                Institutional Investors
-              </h4>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-pension-fund"
-                    checked={localFilters.types.includes("Pension Fund")}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Pension Fund")
-                    }
-                  />
-                  <Label htmlFor="type-pension-fund" className="text-xs">
-                    Pension Funds
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-swf"
-                    checked={localFilters.types.includes(
-                      "Sovereign Wealth Fund",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Sovereign Wealth Fund")
-                    }
-                  />
-                  <Label htmlFor="type-swf" className="text-xs">
-                    SWFs
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-insurance"
-                    checked={localFilters.types.includes("Insurance Company")}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Insurance Company")
-                    }
-                  />
-                  <Label htmlFor="type-insurance" className="text-xs">
-                    Insurance Companies
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-endowment"
-                    checked={localFilters.types.includes(
-                      "Endowment & Foundation",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Endowment & Foundation")
-                    }
-                  />
-                  <Label htmlFor="type-endowment" className="text-xs">
-                    Endowments & Foundations
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-asset-manager"
-                    checked={localFilters.types.includes(
-                      "Asset Manager & Mutual Fund",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Asset Manager & Mutual Fund")
-                    }
-                  />
-                  <Label htmlFor="type-asset-manager" className="text-xs">
-                    Asset Managers
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-hedge-fund"
-                    checked={localFilters.types.includes("Hedge Fund")}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Hedge Fund")
-                    }
-                  />
-                  <Label htmlFor="type-hedge-fund" className="text-xs">
-                    Hedge Funds
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-pe-vc"
-                    checked={localFilters.types.includes(
-                      "Private Equity & Venture Capital",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter(
-                        "types",
-                        "Private Equity & Venture Capital",
-                      )
-                    }
-                  />
-                  <Label htmlFor="type-pe-vc" className="text-xs">
-                    PE & VC Firms
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-family-office"
-                    checked={localFilters.types.includes("Family Office")}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Family Office")
-                    }
-                  />
-                  <Label htmlFor="type-family-office" className="text-xs">
-                    Family Offices
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-bank"
-                    checked={localFilters.types.includes(
-                      "Bank & Investment Firm",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Bank & Investment Firm")
-                    }
-                  />
-                  <Label htmlFor="type-bank" className="text-xs">
-                    Banks & Investment Firms
-                  </Label>
-                </div>
-              </div>
-
-              <h4 className="text-xs font-medium mt-4 mb-2">
-                Retail Investors
-              </h4>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-hnwi"
-                    checked={localFilters.types.includes(
-                      "High-Net-Worth Individual",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "High-Net-Worth Individual")
-                    }
-                  />
-                  <Label htmlFor="type-hnwi" className="text-xs">
-                    HNWIs
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-mass-affluent"
-                    checked={localFilters.types.includes(
-                      "Mass Affluent Investor",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Mass Affluent Investor")
-                    }
-                  />
-                  <Label htmlFor="type-mass-affluent" className="text-xs">
-                    Mass Affluent
-                  </Label>
-                </div>
-              </div>
-
-              <h4 className="text-xs font-medium mt-4 mb-2">
-                Corporate & Strategic
-              </h4>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-corporate"
-                    checked={localFilters.types.includes(
-                      "Corporate & Conglomerate",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Corporate & Conglomerate")
-                    }
-                  />
-                  <Label htmlFor="type-corporate" className="text-xs">
-                    Corporates
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-private-company"
-                    checked={localFilters.types.includes(
-                      "Private Company & Holding",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Private Company & Holding")
-                    }
-                  />
-                  <Label htmlFor="type-private-company" className="text-xs">
-                    Private Companies
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-strategic"
-                    checked={localFilters.types.includes("Strategic Investor")}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Strategic Investor")
-                    }
-                  />
-                  <Label htmlFor="type-strategic" className="text-xs">
-                    Strategic Investors
-                  </Label>
-                </div>
-              </div>
-
-              <h4 className="text-xs font-medium mt-4 mb-2">
-                Alternative & Thematic
-              </h4>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-reit"
-                    checked={localFilters.types.includes(
-                      "Real Estate Investment Trust",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter(
-                        "types",
-                        "Real Estate Investment Trust",
-                      )
-                    }
-                  />
-                  <Label htmlFor="type-reit" className="text-xs">
-                    REITs
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-infrastructure"
-                    checked={localFilters.types.includes(
-                      "Infrastructure Investor",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter("types", "Infrastructure Investor")
-                    }
-                  />
-                  <Label htmlFor="type-infrastructure" className="text-xs">
-                    Infrastructure
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-commodities"
-                    checked={localFilters.types.includes(
-                      "Commodities & Natural Resources Fund",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter(
-                        "types",
-                        "Commodities & Natural Resources Fund",
-                      )
-                    }
-                  />
-                  <Label htmlFor="type-commodities" className="text-xs">
-                    Commodities
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-crypto"
-                    checked={localFilters.types.includes(
-                      "Institutional Crypto Investor",
-                    )}
-                    onCheckedChange={() =>
-                      handleToggleFilter(
-                        "types",
-                        "Institutional Crypto Investor",
-                      )
-                    }
-                  />
-                  <Label htmlFor="type-crypto" className="text-xs">
-                    Crypto Investors
-                  </Label>
-                </div>
-              </div>
+              {investorTypeCategories.map((category) => (
+                <React.Fragment key={category.id}>
+                  <h4 className="text-xs font-medium mt-4 mb-2">
+                    {category.name}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {category.types.map((type) => (
+                      <div
+                        key={type.id}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={`type-${type.id}`}
+                          checked={localFilters.types.includes(type.name)}
+                          onCheckedChange={() =>
+                            handleToggleFilter("types", type.name)
+                          }
+                        />
+                        <Label htmlFor={`type-${type.id}`} className="text-xs">
+                          {type.name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </React.Fragment>
+              ))}
 
               <h4 className="text-xs font-medium mt-4 mb-2">Legacy Types</h4>
               <div className="grid grid-cols-2 gap-2">

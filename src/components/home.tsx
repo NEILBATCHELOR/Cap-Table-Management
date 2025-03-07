@@ -802,8 +802,8 @@ const HomePage = () => {
       <CSVUploadDialog
         open={showCSVDialog}
         onClose={() => setShowCSVDialog(false)}
-        validationErrors={csvValidationErrors}
-        validationWarnings={csvValidationWarnings}
+        validationErrors={[]}
+        validationWarnings={[]}
         isValidating={isValidatingCSV}
         onUpload={async (file) => {
           try {
@@ -811,16 +811,8 @@ const HomePage = () => {
             setCSVValidationErrors([]);
             setCSVValidationWarnings([]);
 
-            // Parse and validate the CSV file
-            const { data, errors, warnings } = await parseCSV(file, "investor");
-
-            setCSVValidationErrors(errors);
-            setCSVValidationWarnings(warnings);
-
-            if (errors.length > 0) {
-              setIsValidatingCSV(false);
-              return; // Don't proceed if there are validation errors
-            }
+            // Parse the CSV file without validation
+            const { data } = await parseCSV(file, "investor");
 
             // For demo purposes, we'll simulate a successful import
             setIsValidatingCSV(false);

@@ -1,31 +1,15 @@
 import { TokenSubscription } from "./token";
 
-export type InvestorType =
-  | "Pension Fund"
-  | "Sovereign Wealth Fund"
-  | "Insurance Company"
-  | "Endowment & Foundation"
-  | "Asset Manager & Mutual Fund"
-  | "Hedge Fund"
-  | "Private Equity & Venture Capital"
-  | "Family Office"
-  | "Bank & Investment Firm"
-  | "High-Net-Worth Individual"
-  | "Mass Affluent Investor"
-  | "Corporate & Conglomerate"
-  | "Private Company & Holding"
-  | "Strategic Investor"
-  | "Development Finance Institution"
-  | "Government Investment Vehicle"
-  | "Multilateral Institution"
-  | "Real Estate Investment Trust"
-  | "Infrastructure Investor"
-  | "Commodities & Natural Resources Fund"
-  | "Distressed & Special Situations Investor"
-  | "Quantitative & Algorithmic Investor"
-  | "Institutional Crypto Investor"
-  | "Individual"
-  | "Institution";
+// Import all investor type names from the categories
+import { getAllInvestorTypes } from "./investorTypeCategory";
+
+// Create a union type from all the investor type names
+type InvestorTypeNames = typeof getAllInvestorTypes extends () => Array<infer T>
+  ? T
+  : never;
+
+// For backward compatibility
+export type InvestorType = InvestorTypeNames | "Individual" | "Institution";
 
 export interface Investor {
   id: string;

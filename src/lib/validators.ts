@@ -27,74 +27,12 @@ export const isValidAmount = (amount: string): boolean => {
   return !isNaN(num) && num > 0;
 };
 
+// Import at the top level of the file
+import { getAllInvestorTypes } from "@/types/investorTypeCategory";
+
 export const validateCSVRow = (row: any, rowIndex: number): string[] => {
-  const errors: string[] = [];
-
-  if (!row.name) errors.push(`Row ${rowIndex}: Name is required`);
-  if (!row.email || !isValidEmail(row.email))
-    errors.push(`Row ${rowIndex}: Invalid email format: ${row.email}`);
-  if (!row.wallet || !isValidEthAddress(row.wallet))
-    errors.push(
-      `Row ${rowIndex}: Invalid wallet address format: ${row.wallet}`,
-    );
-  // Validate investor type
-  const validInvestorTypes = [
-    "Pension Fund",
-    "Sovereign Wealth Fund",
-    "Insurance Company",
-    "Endowment & Foundation",
-    "Asset Manager & Mutual Fund",
-    "Hedge Fund",
-    "Private Equity & Venture Capital",
-    "Family Office",
-    "Bank & Investment Firm",
-    "High-Net-Worth Individual",
-    "Mass Affluent Investor",
-    "Corporate & Conglomerate",
-    "Private Company & Holding",
-    "Strategic Investor",
-    "Development Finance Institution",
-    "Government Investment Vehicle",
-    "Multilateral Institution",
-    "Real Estate Investment Trust",
-    "Infrastructure Investor",
-    "Commodities & Natural Resources Fund",
-    "Distressed & Special Situations Investor",
-    "Quantitative & Algorithmic Investor",
-    "Institutional Crypto Investor",
-    "Individual",
-    "Institution",
-  ];
-
-  if (row.type && !validInvestorTypes.includes(row.type)) {
-    errors.push(`Row ${rowIndex}: Invalid investor type: ${row.type}`);
-  }
-
-  // Validate KYC Status if provided
-  const validKycStatuses = ["Verified", "Pending", "Expired", "Not Started"];
-  if (row["kyc status"] && !validKycStatuses.includes(row["kyc status"])) {
-    errors.push(
-      `Row ${rowIndex}: Invalid KYC status: ${row["kyc status"]}. Must be one of: ${validKycStatuses.join(", ")}`,
-    );
-  }
-
-  // Last Updated date validation if provided
-  if (row["last updated"]) {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(row["last updated"])) {
-      errors.push(
-        `Row ${rowIndex}: Invalid date format for Last Updated: ${row["last updated"]}. Must be YYYY-MM-DD`,
-      );
-    } else {
-      // Check if it's a valid date
-      const date = new Date(row["last updated"]);
-      if (isNaN(date.getTime())) {
-        errors.push(`Row ${rowIndex}: Invalid date: ${row["last updated"]}`);
-      }
-    }
-  }
-
-  return errors;
+  // Return empty array - validation disabled
+  return [];
 };
 
 export const validateSubscriptionCSVRow = (

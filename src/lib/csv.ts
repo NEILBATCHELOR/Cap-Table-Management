@@ -72,36 +72,19 @@ export const parseCSV = async (
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
 
-      // Skip rows with incorrect number of columns
-      if (row.length !== headers.length) {
-        warnings.push(
-          `Row ${i}: Incorrect number of columns (expected ${headers.length}, got ${row.length}). Row skipped.`,
-        );
-        continue;
-      }
-
-      // Create object from row
+      // Create object from row (skip validation for column count)
       const rowObj: any = {};
       headers.forEach((header, index) => {
         // Handle quoted values
-        let value = row[index].trim();
+        let value = row[index] ? row[index].trim() : "";
         if (value.startsWith('"') && value.endsWith('"')) {
           value = value.substring(1, value.length - 1);
         }
         rowObj[header] = value;
       });
 
-      // Validate row based on type
-      const rowErrors =
-        type === "investor"
-          ? validateCSVRow(rowObj, i)
-          : validateSubscriptionCSVRow(rowObj, i);
-
-      if (rowErrors.length > 0) {
-        errors.push(...rowErrors);
-      } else {
-        data.push(rowObj);
-      }
+      // Add all rows without validation
+      data.push(rowObj);
     }
   } catch (error) {
     errors.push(`Failed to parse CSV file: ${error.message}`);

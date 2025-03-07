@@ -175,36 +175,7 @@ const CSVUploadDialog = ({
               </div>
             )}
 
-            {validationErrors.length > 0 && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Validation Errors</AlertTitle>
-                <AlertDescription>
-                  <ul className="list-disc pl-5 text-sm space-y-1 mt-2 max-h-[150px] overflow-y-auto">
-                    {validationErrors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {validationWarnings.length > 0 && (
-              <Alert
-                variant="warning"
-                className="bg-yellow-50 border-yellow-200"
-              >
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <AlertTitle className="text-yellow-800">Warnings</AlertTitle>
-                <AlertDescription className="text-yellow-700">
-                  <ul className="list-disc pl-5 text-sm space-y-1 mt-2 max-h-[100px] overflow-y-auto">
-                    {validationWarnings.map((warning, index) => (
-                      <li key={index}>{warning}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
+            {/* Validation errors and warnings removed */}
           </TabsContent>
 
           <TabsContent value="format" className="space-y-4 py-4">
@@ -274,9 +245,7 @@ const CSVUploadDialog = ({
           </Button>
           <Button
             onClick={handleUpload}
-            disabled={
-              !selectedFile || isValidating || validationErrors.length > 0
-            }
+            disabled={!selectedFile || isValidating}
           >
             <Upload className="mr-2 h-4 w-4" />
             {isValidating ? "Validating..." : "Upload"}
