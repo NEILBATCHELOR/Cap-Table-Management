@@ -88,7 +88,7 @@ const FilterDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-background">
+      <DialogContent className="sm:max-w-[700px] bg-background">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Filter Investors</span>

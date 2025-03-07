@@ -46,13 +46,16 @@ const DashboardSummary = ({ investors = [] }: DashboardSummaryProps) => {
 
   // KYC status counts
   const kycVerified = investors.filter(
-    (inv) => inv.kycStatus === "Verified",
+    (inv) => inv.kycStatus === "Verified" || inv.kycStatus === "Approved",
   ).length;
   const kycExpired = investors.filter(
-    (inv) => inv.kycStatus === "Expired",
+    (inv) => inv.kycStatus === "Expired" || inv.kycStatus === "Failed",
   ).length;
   const kycPending = investors.filter(
     (inv) => inv.kycStatus === "Pending",
+  ).length;
+  const kycNotStarted = investors.filter(
+    (inv) => inv.kycStatus === "Not Started",
   ).length;
 
   // Investor types by category
@@ -96,21 +99,29 @@ const DashboardSummary = ({ investors = [] }: DashboardSummaryProps) => {
     "Multilateral Institution",
   ];
 
-  // Count investors by category
+  // Count investors by category using case-insensitive comparison
   const institutionalInvestors = investors.filter((inv) =>
-    institutionalTypes.includes(inv.type),
+    institutionalTypes.some(
+      (t) => t.toLowerCase() === (inv.type || "").toLowerCase(),
+    ),
   ).length;
   const retailInvestors = investors.filter((inv) =>
-    retailTypes.includes(inv.type),
+    retailTypes.some((t) => t.toLowerCase() === (inv.type || "").toLowerCase()),
   ).length;
   const corporateInvestors = investors.filter((inv) =>
-    corporateTypes.includes(inv.type),
+    corporateTypes.some(
+      (t) => t.toLowerCase() === (inv.type || "").toLowerCase(),
+    ),
   ).length;
   const alternativeInvestors = investors.filter((inv) =>
-    alternativeTypes.includes(inv.type),
+    alternativeTypes.some(
+      (t) => t.toLowerCase() === (inv.type || "").toLowerCase(),
+    ),
   ).length;
   const governmentInvestors = investors.filter((inv) =>
-    governmentTypes.includes(inv.type),
+    governmentTypes.some(
+      (t) => t.toLowerCase() === (inv.type || "").toLowerCase(),
+    ),
   ).length;
 
   return (
@@ -171,15 +182,49 @@ const DashboardSummary = ({ investors = [] }: DashboardSummaryProps) => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            <Badge className="bg-green-100 text-green-800">
-              {kycVerified} Verified
-            </Badge>
-            <Badge className="bg-yellow-100 text-yellow-800">
-              {kycPending} Pending
-            </Badge>
-            <Badge className="bg-red-100 text-red-800">
-              {kycExpired} Expired
-            </Badge>
+            {kycVerified > 0 && (
+              <Badge
+                variant="outline"
+                className="bg-green-100 text-green-800 border-green-200"
+              >
+                {kycVerified} Approved
+              </Badge>
+            )}
+            {kycPending > 0 && (
+              <Badge
+                variant="outline"
+                className="bg-yellow-100 text-yellow-800 border-yellow-200"
+              >
+                {kycPending} Pending
+              </Badge>
+            )}
+            {kycExpired > 0 && (
+              <Badge
+                variant="outline"
+                className="bg-red-100 text-red-800 border-red-200"
+              >
+                {kycExpired} Failed/Expired
+              </Badge>
+            )}
+            {kycNotStarted > 0 && (
+              <Badge
+                variant="outline"
+                className="bg-gray-100 text-gray-800 border-gray-200"
+              >
+                {kycNotStarted} Not Started
+              </Badge>
+            )}
+            {kycVerified === 0 &&
+              kycPending === 0 &&
+              kycExpired === 0 &&
+              kycNotStarted === 0 && (
+                <Badge
+                  variant="outline"
+                  className="bg-gray-100 text-gray-800 border-gray-200"
+                >
+                  0 Investors
+                </Badge>
+              )}
           </div>
           {kycExpired > 0 && (
             <div className="flex items-center mt-2 text-xs text-red-600">

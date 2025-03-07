@@ -40,6 +40,17 @@ export const parseCSV = async (
       if (missingHeaders.length > 0) {
         errors.push(`Missing required headers: ${missingHeaders.join(", ")}`);
       }
+
+      // Check for recommended headers
+      const recommendedHeaders = ["type", "kyc status", "last updated"];
+      const missingRecommendedHeaders = recommendedHeaders.filter(
+        (h) => !headers.includes(h),
+      );
+      if (missingRecommendedHeaders.length > 0) {
+        warnings.push(
+          `Missing recommended headers: ${missingRecommendedHeaders.join(", ")}`,
+        );
+      }
     } else if (type === "subscription") {
       const requiredHeaders = [
         "investor name",
@@ -373,7 +384,14 @@ export const generateCSVTemplate = (
     return `${headers.join(",")}\n${example.join(",")}`;
   }
 
-  const headers = ["Name", "Email", "Type", "Wallet", "Country", "InvestorID"];
+  const headers = [
+    "Name",
+    "Email",
+    "Type",
+    "Wallet",
+    "KYC Status",
+    "Last Updated",
+  ];
 
   // Create multiple examples with different investor types
   const examples = [
@@ -382,24 +400,28 @@ export const generateCSVTemplate = (
       "john@example.com",
       "High-Net-Worth Individual",
       "0x1234567890abcdef1234567890abcdef12345678",
-      "USA",
-      "INV001",
+      "Verified",
+      new Date().toISOString().split("T")[0],
     ],
     [
       "Acme Capital",
       "investments@acmecapital.com",
       "Private Equity & Venture Capital",
       "0xabcdef1234567890abcdef1234567890abcdef12",
-      "GBR",
-      "INV002",
+      "Pending",
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
     ],
     [
       "Global Pension Fund",
       "info@globalpension.org",
       "Pension Fund",
       "0x7890abcdef1234567890abcdef1234567890abcd",
-      "CAN",
-      "INV003",
+      "Expired",
+      new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
     ],
   ];
 

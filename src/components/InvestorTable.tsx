@@ -235,7 +235,7 @@ const InvestorTable = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-[48px_2fr_2fr_1fr_1fr_2fr_1fr_1fr_80px] gap-4 items-center p-4 border-b border-gray-200 bg-gray-50">
+      <div className="grid grid-cols-[48px_2fr_2fr_1.5fr_1fr_2fr_1fr_1fr_80px] gap-4 items-center p-4 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center justify-center">
           <Checkbox
             checked={allSelected}

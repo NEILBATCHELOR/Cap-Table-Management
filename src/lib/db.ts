@@ -2,59 +2,116 @@ import { supabase } from "./supabase";
 import { Database } from "@/types/supabase";
 import { Investor, InvestorCSV } from "@/types/investor";
 import { TokenSubscription, TokenType, Currency } from "@/types/token";
+import { CapTable } from "@/types/capTable";
+import { Project } from "@/components/ProjectSelector";
 
 // Investors
 export const getInvestors = async (): Promise<Investor[]> => {
-  const { data, error } = await supabase.from("investors").select(`
+  // First get all investors
+  const { data: investorsData, error: investorsError } = await supabase.from(
+    "investors",
+  ).select(`
       id,
       name,
       email,
       type,
       kyc_status,
-      wallet,
+      wallet_address,
       country,
       investor_id,
       kyc_expiry_date,
-      accreditation_status,
-      subscriptions(id, subscription_id, fiat_amount, currency, confirmed, allocated, distributed, token_allocations(id, token_type, token_amount, distributed))
+      accreditation_status
     `);
 
-  if (error) throw error;
+  if (investorsError) throw investorsError;
+  if (!investorsData) return [];
 
-  return data.map((investor) => ({
-    id: investor.id,
-    name: investor.name,
-    email: investor.email,
-    type: investor.type as "Individual" | "Institution",
-    kycStatus: investor.kyc_status as "Verified" | "Expired" | "Pending",
-    wallet: investor.wallet,
-    country: investor.country || undefined,
-    investorId: investor.investor_id || undefined,
-    kycExpiryDate: investor.kyc_expiry_date
-      ? new Date(investor.kyc_expiry_date)
-      : undefined,
-    accreditationStatus: investor.accreditation_status as
-      | "Accredited"
-      | "Non-Accredited"
-      | "Pending"
-      | undefined,
-    subscriptions: investor.subscriptions.map((sub) => ({
-      id: sub.id,
-      subscriptionId: sub.subscription_id,
-      fiatSubscription: {
-        amount: sub.fiat_amount,
-        currency: sub.currency as Currency,
-      },
-      tokenType: sub.token_allocations?.[0]?.token_type as
-        | TokenType
+  // For each investor, get their subscriptions and token allocations
+  const investors: Investor[] = [];
+
+  for (const investor of investorsData) {
+    // Get subscriptions for this investor
+    const { data: subscriptionsData, error: subscriptionsError } =
+      await supabase
+        .from("subscriptions")
+        .select(
+          `
+        id,
+        subscription_id,
+        fiat_amount,
+        currency,
+        confirmed,
+        allocated,
+        distributed,
+        notes,
+        subscription_date
+      `,
+        )
+        .eq("investor_id", investor.id);
+
+    if (subscriptionsError) throw subscriptionsError;
+
+    // For each subscription, get token allocations
+    const subscriptions = [];
+
+    for (const subscription of subscriptionsData || []) {
+      const { data: allocationsData, error: allocationsError } = await supabase
+        .from("token_allocations")
+        .select(
+          `
+          id,
+          token_type,
+          token_amount,
+          distributed,
+          distribution_date,
+          distribution_tx_hash
+        `,
+        )
+        .eq("subscription_id", subscription.id);
+
+      if (allocationsError) throw allocationsError;
+
+      subscriptions.push({
+        id: subscription.id,
+        subscriptionId: subscription.subscription_id,
+        fiatSubscription: {
+          amount: subscription.fiat_amount,
+          currency: subscription.currency as Currency,
+        },
+        tokenType: allocationsData?.[0]?.token_type as TokenType | undefined,
+        tokenAllocation: allocationsData?.[0]?.token_amount,
+        tokenAllocationId: allocationsData?.[0]?.id,
+        confirmed: subscription.confirmed,
+        allocated: subscription.allocated,
+        distributed: subscription.distributed,
+        notes: subscription.notes,
+        subscriptionDate: subscription.subscription_date,
+      });
+    }
+
+    investors.push({
+      id: investor.investor_id || investor.id, // Use investor_id as the primary identifier if available
+      name: investor.name,
+      email: investor.email,
+      type: investor.type as "Individual" | "Institution",
+      kycStatus: investor.kyc_status as "Verified" | "Expired" | "Pending",
+      wallet: investor.wallet_address,
+      country: investor.country || undefined,
+      investorId: investor.investor_id || undefined,
+      kycExpiryDate: investor.kyc_expiry_date
+        ? new Date(investor.kyc_expiry_date)
+        : undefined,
+      accreditationStatus: investor.accreditation_status as
+        | "Accredited"
+        | "Non-Accredited"
+        | "Pending"
         | undefined,
-      tokenAllocation: sub.token_allocations?.[0]?.token_amount,
-      tokenAllocationId: sub.token_allocations?.[0]?.id,
-      confirmed: sub.confirmed,
-      allocated: sub.allocated,
-      distributed: sub.distributed,
-    })),
-  }));
+      subscriptions,
+      selected: false,
+    });
+  }
+
+  return investors;
 };
 
 export const createInvestor = async (
@@ -130,15 +187,30 @@ export const createSubscription = async (
   fiatAmount: number,
   currency: Currency,
   confirmed: boolean,
+  notes?: string,
+  subscriptionDate?: string,
 ): Promise<string> => {
+  // First, get the investor's UUID from the investor_id field
+  const { data: investorData, error: investorError } = await supabase
+    .from("investors")
+    .select("id")
+    .eq("investor_id", investorId)
+    .single();
+
+  if (investorError) throw investorError;
+  if (!investorData)
+    throw new Error(`Investor with ID ${investorId} not found`);
+
   const { data, error } = await supabase
     .from("subscriptions")
     .insert({
-      investor_id: investorId,
+      investor_id: investorData.id, // Use the UUID, not the investor_id string
       subscription_id: subscriptionId,
       fiat_amount: fiatAmount,
       currency,
       confirmed,
+      notes,
+      subscription_date: subscriptionDate || new Date().toISOString(),
     })
     .select("id")
     .single();
@@ -153,7 +225,7 @@ export const confirmSubscription = async (
   const { error } = await supabase
     .from("subscriptions")
     .update({ confirmed: true })
-    .eq("subscription_id", subscriptionId);
+    .eq("id", subscriptionId);
 
   if (error) throw error;
 };
@@ -240,6 +312,70 @@ export const batchDistributeTokens = async (
   }
 };
 
+// Projects
+export const getProjects = async (): Promise<Project[]> => {
+  const { data, error } = await supabase.from("projects").select("*");
+
+  if (error) throw error;
+
+  return (
+    data?.map((project) => ({
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      createdAt: new Date(project.created_at),
+      updatedAt: new Date(project.updated_at),
+    })) || []
+  );
+};
+
+export const createProject = async (
+  project: Omit<Project, "id" | "createdAt" | "updatedAt">,
+): Promise<string> => {
+  const { data, error } = await supabase
+    .from("projects")
+    .insert({
+      name: project.name,
+      description: project.description,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  return data.id;
+};
+
+export const updateProject = async (project: Project): Promise<void> => {
+  const { error } = await supabase
+    .from("projects")
+    .update({
+      name: project.name,
+      description: project.description,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", project.id);
+
+  if (error) throw error;
+};
+
+export const deleteProject = async (projectId: string): Promise<void> => {
+  // First delete all cap tables associated with this project
+  const { error: capTableError } = await supabase
+    .from("cap_tables")
+    .delete()
+    .eq("project_id", projectId);
+
+  if (capTableError) throw capTableError;
+
+  // Then delete the project
+  const { error } = await supabase
+    .from("projects")
+    .delete()
+    .eq("id", projectId);
+
+  if (error) throw error;
+};
+
 // Token Designs
 export const getTokenDesigns = async () => {
   const { data, error } = await supabase.from("token_designs").select("*");
@@ -265,4 +401,141 @@ export const createTokenDesign = async (
 
   if (error) throw error;
   return data.id;
+};
+
+// Cap Tables
+export const getCapTables = async (projectId?: string): Promise<CapTable[]> => {
+  const query = supabase.from("cap_tables").select("*");
+
+  if (projectId) {
+    query.eq("project_id", projectId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  return data.map((table) => ({
+    id: table.id,
+    name: table.name,
+    description: table.description,
+    projectId: table.project_id,
+    createdAt: new Date(table.created_at),
+    updatedAt: new Date(table.updated_at),
+  }));
+};
+
+export const createCapTable = async (
+  capTable: Omit<CapTable, "id" | "createdAt" | "updatedAt">,
+): Promise<string> => {
+  const { data, error } = await supabase
+    .from("cap_tables")
+    .insert({
+      name: capTable.name,
+      description: capTable.description,
+      project_id: capTable.projectId,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  return data.id;
+};
+
+export const updateCapTable = async (capTable: CapTable): Promise<void> => {
+  const { error } = await supabase
+    .from("cap_tables")
+    .update({
+      name: capTable.name,
+      description: capTable.description,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", capTable.id);
+
+  if (error) throw error;
+};
+
+export const deleteCapTable = async (capTableId: string): Promise<void> => {
+  const { error } = await supabase
+    .from("cap_tables")
+    .delete()
+    .eq("id", capTableId);
+
+  if (error) throw error;
+};
+
+export const getCapTableInvestors = async (
+  capTableId: string,
+): Promise<Investor[]> => {
+  const { data, error } = await supabase
+    .from("cap_table_investors")
+    .select(
+      `
+      investor_id,
+      investors!inner(id, name, email, type, kyc_status, wallet, country, investor_id, kyc_expiry_date, accreditation_status, subscriptions(id, subscription_id, fiat_amount, currency, confirmed, allocated, distributed, token_allocations(id, token_type, token_amount, distributed)))
+    `,
+    )
+    .eq("cap_table_id", capTableId);
+
+  if (error) throw error;
+
+  return data.map((item) => ({
+    id: item.investors.investor_id,
+    name: item.investors.name,
+    email: item.investors.email,
+    type: item.investors.type as "Individual" | "Institution",
+    kycStatus: item.investors.kyc_status as "Verified" | "Expired" | "Pending",
+    wallet: item.investors.wallet,
+    country: item.investors.country || undefined,
+    investorId: item.investors.investor_id || undefined,
+    kycExpiryDate: item.investors.kyc_expiry_date
+      ? new Date(item.investors.kyc_expiry_date)
+      : undefined,
+    accreditationStatus: item.investors.accreditation_status as
+      | "Accredited"
+      | "Non-Accredited"
+      | "Pending"
+      | undefined,
+    subscriptions: item.investors.subscriptions.map((sub) => ({
+      id: sub.id,
+      subscriptionId: sub.subscription_id,
+      fiatSubscription: {
+        amount: sub.fiat_amount,
+        currency: sub.currency as Currency,
+      },
+      tokenType: sub.token_allocations?.[0]?.token_type as
+        | TokenType
+        | undefined,
+      tokenAllocation: sub.token_allocations?.[0]?.token_amount,
+      tokenAllocationId: sub.token_allocations?.[0]?.id,
+      confirmed: sub.confirmed,
+      allocated: sub.allocated,
+      distributed: sub.distributed,
+    })),
+  }));
+};
+
+export const addInvestorToCapTable = async (
+  capTableId: string,
+  investorId: string,
+): Promise<void> => {
+  const { error } = await supabase.from("cap_table_investors").insert({
+    cap_table_id: capTableId,
+    investor_id: investorId,
+  });
+
+  if (error) throw error;
+};
+
+export const removeInvestorFromCapTable = async (
+  capTableId: string,
+  investorId: string,
+): Promise<void> => {
+  const { error } = await supabase
+    .from("cap_table_investors")
+    .delete()
+    .eq("cap_table_id", capTableId)
+    .eq("investor_id", investorId);
+
+  if (error) throw error;
 };

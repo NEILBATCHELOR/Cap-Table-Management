@@ -69,10 +69,29 @@ export const validateCSVRow = (row: any, rowIndex: number): string[] => {
   if (row.type && !validInvestorTypes.includes(row.type)) {
     errors.push(`Row ${rowIndex}: Invalid investor type: ${row.type}`);
   }
-  if (row.country && row.country.length !== 2 && row.country.length !== 3) {
+
+  // Validate KYC Status if provided
+  const validKycStatuses = ["Verified", "Pending", "Expired", "Not Started"];
+  if (row["kyc status"] && !validKycStatuses.includes(row["kyc status"])) {
     errors.push(
-      `Row ${rowIndex}: Country should be a 2 or 3 letter code, got: ${row.country}`,
+      `Row ${rowIndex}: Invalid KYC status: ${row["kyc status"]}. Must be one of: ${validKycStatuses.join(", ")}`,
     );
+  }
+
+  // Last Updated date validation if provided
+  if (row["last updated"]) {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(row["last updated"])) {
+      errors.push(
+        `Row ${rowIndex}: Invalid date format for Last Updated: ${row["last updated"]}. Must be YYYY-MM-DD`,
+      );
+    } else {
+      // Check if it's a valid date
+      const date = new Date(row["last updated"]);
+      if (isNaN(date.getTime())) {
+        errors.push(`Row ${rowIndex}: Invalid date: ${row["last updated"]}`);
+      }
+    }
   }
 
   return errors;

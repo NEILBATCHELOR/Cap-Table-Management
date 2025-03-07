@@ -47,19 +47,45 @@ const DIGITAL_TYPES = ["Institutional Crypto Investor"];
  * Returns the category for a given investor type
  */
 export function getInvestorTypeCategory(type: string): string {
-  if (INSTITUTIONAL_TYPES.includes(type)) {
+  // Normalize the type string for case-insensitive comparison
+  const normalizedType = type.trim();
+
+  if (
+    INSTITUTIONAL_TYPES.some(
+      (t) => t.toLowerCase() === normalizedType.toLowerCase(),
+    )
+  ) {
     return "Institutional";
-  } else if (RETAIL_TYPES.includes(type)) {
+  } else if (
+    RETAIL_TYPES.some((t) => t.toLowerCase() === normalizedType.toLowerCase())
+  ) {
     return "Retail";
-  } else if (CORPORATE_TYPES.includes(type)) {
+  } else if (
+    CORPORATE_TYPES.some(
+      (t) => t.toLowerCase() === normalizedType.toLowerCase(),
+    )
+  ) {
     return "Corporate";
-  } else if (GOVERNMENT_TYPES.includes(type)) {
+  } else if (
+    GOVERNMENT_TYPES.some(
+      (t) => t.toLowerCase() === normalizedType.toLowerCase(),
+    )
+  ) {
     return "Government";
-  } else if (ALTERNATIVE_TYPES.includes(type)) {
+  } else if (
+    ALTERNATIVE_TYPES.some(
+      (t) => t.toLowerCase() === normalizedType.toLowerCase(),
+    )
+  ) {
     return "Alternative";
-  } else if (DIGITAL_TYPES.includes(type)) {
+  } else if (
+    DIGITAL_TYPES.some((t) => t.toLowerCase() === normalizedType.toLowerCase())
+  ) {
     return "Digital";
   }
+
+  // Log the type that wasn't matched for debugging
+  console.log(`Investor type not categorized: ${type}`);
   return "Other";
 }
 

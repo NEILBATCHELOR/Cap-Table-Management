@@ -9,6 +9,77 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      cap_table_investors: {
+        Row: {
+          cap_table_id: string | null
+          created_at: string | null
+          id: string
+          investor_id: string | null
+        }
+        Insert: {
+          cap_table_id?: string | null
+          created_at?: string | null
+          id?: string
+          investor_id?: string | null
+        }
+        Update: {
+          cap_table_id?: string | null
+          created_at?: string | null
+          id?: string
+          investor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cap_table_investors_cap_table_id_fkey"
+            columns: ["cap_table_id"]
+            isOneToOne: false
+            referencedRelation: "cap_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cap_table_investors_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "investors"
+            referencedColumns: ["investor_id"]
+          },
+        ]
+      }
+      cap_tables: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          project_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cap_tables_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investor_groups: {
         Row: {
           created_at: string | null
@@ -128,6 +199,59 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          allocated: boolean
+          confirmed: boolean
+          created_at: string | null
+          currency: string
+          distributed: boolean
+          fiat_amount: number
+          id: string
+          investor_id: string
+          notes: string | null
+          subscription_date: string | null
+          subscription_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          allocated?: boolean
+          confirmed?: boolean
+          created_at?: string | null
+          currency: string
+          distributed?: boolean
+          fiat_amount: number
+          id?: string
+          investor_id: string
+          notes?: string | null
+          subscription_date?: string | null
+          subscription_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          allocated?: boolean
+          confirmed?: boolean
+          created_at?: string | null
+          currency?: string
+          distributed?: boolean
+          fiat_amount?: number
+          id?: string
+          investor_id?: string
+          notes?: string | null
+          subscription_date?: string | null
+          subscription_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "investors"
+            referencedColumns: ["investor_id"]
+          },
+        ]
       }
       token_allocations: {
         Row: {

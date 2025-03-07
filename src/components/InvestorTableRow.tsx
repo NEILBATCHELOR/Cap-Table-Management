@@ -3,7 +3,13 @@ import { getInvestorTypeCategory } from "@/lib/investorUtils";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import KycStatusBadge from "./KycStatusBadge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "./ui/tooltip";
 import {
   Eye,
   MoreHorizontal,
@@ -70,20 +76,25 @@ const InvestorTableRow = ({
 
     switch (status) {
       case "Verified":
+      case "Approved":
         return isNearExpiry
-          ? "bg-orange-100 text-orange-800"
-          : "bg-green-100 text-green-800";
+          ? "bg-orange-100 text-orange-800 border-orange-200"
+          : "bg-green-100 text-green-800 border-green-200";
       case "Expired":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 border-red-200";
+      case "Failed":
+        return "bg-red-100 text-red-800 border-red-200";
       case "Pending":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "Not Started":
+        return "bg-gray-100 text-gray-800 border-gray-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
   return (
-    <div className="grid grid-cols-[48px_2fr_2fr_1fr_1fr_2fr_1fr_1fr_80px] gap-4 items-center p-4 border-b border-gray-200 hover:bg-gray-50 bg-background">
+    <div className="grid grid-cols-[48px_2fr_2fr_1.5fr_1fr_2fr_1fr_1fr_80px] gap-4 items-center p-4 border-b border-gray-200 hover:bg-gray-50 bg-background">
       <div className="flex items-center justify-center">
         <Checkbox
           checked={investor.selected}
@@ -95,30 +106,44 @@ const InvestorTableRow = ({
 
       <div className="truncate text-gray-600">{investor.email}</div>
 
-      <div>
-        <Badge
-          variant="secondary"
-          className="cursor-help"
-          title={investor.type}
-        >
-          {getCategoryForType(investor.type)}
-        </Badge>
+      <div className="text-left">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="secondary" className="cursor-help">
+                {investor.type}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Category: {getCategoryForType(investor.type)}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div>
-        <Badge
-          className={getKycStatusColor(
-            investor.kycStatus,
-            investor.kycExpiryDate,
-          )}
-        >
-          {investor.kycStatus}
-          {investor.kycStatus === "Verified" &&
-            investor.kycExpiryDate &&
-            new Date(investor.kycExpiryDate).getTime() - Date.now() <
-              30 * 24 * 60 * 60 * 1000 &&
-            " (Expiring Soon)"}
-        </Badge>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <KycStatusBadge
+                  status={investor.kycStatus}
+                  expiryDate={investor.kycExpiryDate}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              {investor.kycExpiryDate ? (
+                <p>
+                  Expires:{" "}
+                  {new Date(investor.kycExpiryDate).toLocaleDateString()}
+                </p>
+              ) : (
+                <p>No expiration date</p>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div className="truncate text-gray-600 text-left" title={investor.wallet}>

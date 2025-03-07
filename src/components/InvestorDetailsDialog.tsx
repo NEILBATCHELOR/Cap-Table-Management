@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Badge } from "./ui/badge";
 import { Separator } from "./ui/separator";
 import { Investor } from "@/types/investor";
+import KycStatusBadge from "./KycStatusBadge";
 
 interface InvestorDetailsDialogProps {
   open: boolean;
@@ -48,17 +49,10 @@ const InvestorDetailsDialog = ({
               <div>
                 <p className="text-sm text-gray-500">KYC Status</p>
                 <div className="flex flex-col gap-1">
-                  <Badge
-                    className={
-                      investor.kycStatus === "Verified"
-                        ? "bg-green-100 text-green-800"
-                        : investor.kycStatus === "Expired"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-yellow-100 text-yellow-800"
-                    }
-                  >
-                    {investor.kycStatus}
-                  </Badge>
+                  <KycStatusBadge
+                    status={investor.kycStatus}
+                    expiryDate={investor.kycExpiryDate}
+                  />
                   {investor.kycExpiryDate && (
                     <span className="text-xs text-gray-500">
                       {investor.kycStatus === "Verified"

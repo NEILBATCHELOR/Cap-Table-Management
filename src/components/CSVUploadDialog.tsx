@@ -215,7 +215,7 @@ const CSVUploadDialog = ({
               </p>
               <div className="bg-gray-50 p-3 rounded-md">
                 <code className="text-xs font-mono">
-                  Name,Email,Type,Wallet,Country,InvestorID
+                  Name,Email,Type,Wallet,KYC Status,Last Updated
                 </code>
               </div>
 
@@ -240,12 +240,12 @@ const CSVUploadDialog = ({
                     address (0x followed by 40 hex characters).
                   </li>
                   <li>
-                    <strong>Country:</strong> Optional. 2 or 3 letter country
-                    code.
+                    <strong>KYC Status:</strong> Optional. Must be one of:
+                    Verified, Pending, Expired, or Not Started.
                   </li>
                   <li>
-                    <strong>InvestorID:</strong> Optional. Unique identifier for
-                    the investor.
+                    <strong>Last Updated:</strong> Optional. Date in YYYY-MM-DD
+                    format when the investor record was last updated.
                   </li>
                 </ul>
               </div>
