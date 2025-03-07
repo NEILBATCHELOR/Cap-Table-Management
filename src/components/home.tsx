@@ -8,6 +8,7 @@ import CSVUploadDialog from "./CSVUploadDialog";
 import TokenAllocationDialog from "./TokenAllocationDialog";
 import TokenSubscriptionDialog from "./TokenSubscriptionDialog";
 import InvestorDetailsDialog from "./InvestorDetailsDialog";
+import EditInvestorDialog from "./EditInvestorDialog";
 import SubscriptionUploadDialog from "./SubscriptionUploadDialog";
 import BatchDistributionDialog from "./BatchDistributionDialog";
 import DistributionConfirmationDialog from "./DistributionConfirmationDialog";
@@ -23,10 +24,10 @@ import {
   generateCSVFromInvestors,
 } from "@/lib/csv";
 import { generateSubscriptionTemplate } from "@/lib/subscriptionTemplate";
-// Import Supabase client
 import { supabase } from "@/lib/supabase";
 import { toast } from "./ui/use-toast";
 import { useCapTable } from "./CapTableContext";
+import { v4 as uuidv4 } from "uuid";
 
 // Database functions using Supabase
 const dbFunctions = {
@@ -79,7 +80,6 @@ const dbFunctions = {
     return data?.id;
   },
   distributeTokens: async (allocationIds) => {
-    // Call the edge function to distribute tokens
     const { data, error } = await supabase.functions.invoke(
       "distribute_tokens",
       {
@@ -90,7 +90,6 @@ const dbFunctions = {
     return data;
   },
   checkKYCExpirations: async () => {
-    // Call the edge function to check KYC expirations
     const { data, error } = await supabase.functions.invoke(
       "check_kyc_expirations",
     );
@@ -110,12 +109,10 @@ const {
   checkKYCExpirations,
 } = dbFunctions;
 
-// Import CapTable type
 import { CapTable } from "./CapTableSelector";
 import { Project } from "./ProjectSelector";
 
 const HomePage = () => {
-  // Get projects and cap tables from context
   const {
     projects,
     selectedProject,
@@ -141,6 +138,7 @@ const HomePage = () => {
   const [showSubscriptionUploadDialog, setShowSubscriptionUploadDialog] =
     useState(false);
   const [showInvestorDialog, setShowInvestorDialog] = useState(false);
+  const [showEditInvestorDialog, setShowEditInvestorDialog] = useState(false);
   const [showBatchDistributionDialog, setShowBatchDistributionDialog] =
     useState(false);
   const [
@@ -171,33 +169,27 @@ const HomePage = () => {
     tokenTypes: string[];
   } | null>(null);
 
-  // CSV validation states
   const [csvValidationErrors, setCSVValidationErrors] = useState<string[]>([]);
   const [csvValidationWarnings, setCSVValidationWarnings] = useState<string[]>(
     [],
   );
   const [isValidatingCSV, setIsValidatingCSV] = useState(false);
 
-  // Subscription validation states
   const [subValidationErrors, setSubValidationErrors] = useState<string[]>([]);
   const [subValidationWarnings, setSubValidationWarnings] = useState<string[]>(
     [],
   );
   const [isValidatingSub, setIsValidatingSub] = useState(false);
 
-  // Fetch investors on component mount
   useEffect(() => {
     const fetchInvestors = async () => {
       try {
         setLoading(true);
-
-        // Fetch investors from Supabase
         const fetchedInvestors = await getInvestors();
-
+        console.log("Fetched investors from Supabase:", fetchedInvestors);
         setInvestors(fetchedInvestors);
         setLoading(false);
 
-        // Check for expired KYC
         const expiredCount = fetchedInvestors.filter(
           (inv) => inv.kycStatus === "Expired",
         ).length;
@@ -236,39 +228,30 @@ const HomePage = () => {
     }
 
     try {
-      // Get selected investors
       const selectedInvestors = investors.filter(
         (investor) =>
           investor.selected || investor.id === selectedInvestorForAllocation,
       );
-
-      // Create a copy of the investors array to update
       const updatedInvestors = [...investors];
 
-      // For each investor, create token allocations
       for (const investor of selectedInvestors) {
-        // Find the investor in the updated array
         const updatedInvestor = updatedInvestors.find(
           (i) => i.id === investor.id,
         );
         if (!updatedInvestor) continue;
 
-        // For each subscription that doesn't have an allocation
         for (let i = 0; i < updatedInvestor.subscriptions.length; i++) {
           const subscription = updatedInvestor.subscriptions[i];
           if (!subscription.allocated && subscription.confirmed) {
-            // Find the corresponding allocation from the dialog
             const allocation = allocations[i % allocations.length];
             if (allocation) {
               try {
-                // Create token allocation in the database
                 const allocationId = await createTokenAllocation(
                   subscription.id || "",
                   allocation.tokenType,
                   allocation.amount,
                 );
 
-                // Update the subscription with allocation details
                 subscription.allocated = true;
                 subscription.tokenType = allocation.tokenType;
                 subscription.tokenAllocation = allocation.amount;
@@ -278,14 +261,12 @@ const HomePage = () => {
                   "Error creating allocation in database:",
                   allocError,
                 );
-                // Continue with other subscriptions even if one fails
               }
             }
           }
         }
       }
 
-      // Update the state with the modified investors
       setInvestors(updatedInvestors);
       setSelectedInvestorForAllocation(null);
       setShowTokenDialog(false);
@@ -321,37 +302,28 @@ const HomePage = () => {
     }
 
     try {
-      // Create a copy of the investors array to update
       const updatedInvestors = [...investors];
 
-      // Process each bespoke allocation
       for (const allocation of bespokeAllocations) {
-        // Find the investor in the updated array
         const investorIndex = updatedInvestors.findIndex(
           (i) => i.id === allocation.investorId,
         );
         if (investorIndex === -1) continue;
 
         const investor = updatedInvestors[investorIndex];
-
-        // Find unallocated confirmed subscriptions
         const unallocatedSubscriptions = investor.subscriptions.filter(
           (sub) => !sub.allocated && sub.confirmed,
         );
 
         if (unallocatedSubscriptions.length > 0) {
-          // Allocate to the first unallocated subscription
           const subscription = unallocatedSubscriptions[0];
-
           try {
-            // Create token allocation in the database
             const allocationId = await createTokenAllocation(
               subscription.id || "",
               allocation.tokenType,
               allocation.amount,
             );
 
-            // Update the subscription with allocation details
             subscription.allocated = true;
             subscription.tokenType = allocation.tokenType;
             subscription.tokenAllocation = allocation.amount;
@@ -361,12 +333,10 @@ const HomePage = () => {
               "Error creating bespoke allocation in database:",
               allocError,
             );
-            // Continue with other allocations even if one fails
           }
         }
       }
 
-      // Update the state with the modified investors
       setInvestors(updatedInvestors);
       setSelectedInvestorForAllocation(null);
 
@@ -406,20 +376,16 @@ const HomePage = () => {
     } else if (action === "multi_token_allocate") {
       setShowMultiTokenDialog(true);
     } else if (action === "remove_allocations") {
-      // Handle removing allocations
       try {
-        // Create a copy of the investors array
         const updatedInvestors = [...investors];
         let removedCount = 0;
 
-        // For each selected investor, remove allocations
         for (const investor of selectedInvestors) {
           const investorIndex = updatedInvestors.findIndex(
             (i) => i.id === investor.id,
           );
           if (investorIndex === -1) continue;
 
-          // Update subscriptions to remove allocations
           updatedInvestors[investorIndex].subscriptions = updatedInvestors[
             investorIndex
           ].subscriptions.map((sub) => {
@@ -437,7 +403,6 @@ const HomePage = () => {
           });
         }
 
-        // Update state
         setInvestors(updatedInvestors);
 
         toast({
@@ -456,18 +421,15 @@ const HomePage = () => {
       setShowSubscriptionManagementDialog(true);
     } else if (action === "confirm_subscriptions") {
       try {
-        // Create a copy of the investors array
         const updatedInvestors = [...investors];
         let confirmedCount = 0;
 
-        // For each selected investor, confirm all unconfirmed subscriptions
         for (const investor of selectedInvestors) {
           const investorIndex = updatedInvestors.findIndex(
             (i) => i.id === investor.id,
           );
           if (investorIndex === -1) continue;
 
-          // Update unconfirmed subscriptions
           updatedInvestors[investorIndex].subscriptions = updatedInvestors[
             investorIndex
           ].subscriptions.map((sub) => {
@@ -479,7 +441,6 @@ const HomePage = () => {
           });
         }
 
-        // Update state
         setInvestors(updatedInvestors);
 
         toast({
@@ -498,10 +459,8 @@ const HomePage = () => {
       setShowBatchDistributionDialog(true);
     } else if (action === "screen") {
       try {
-        // Create a copy of the investors array
         const updatedInvestors = [...investors];
 
-        // Update KYC status for selected investors
         for (const investor of selectedInvestors) {
           const index = updatedInvestors.findIndex((i) => i.id === investor.id);
           if (index !== -1) {
@@ -512,7 +471,6 @@ const HomePage = () => {
           }
         }
 
-        // Update state
         setInvestors(updatedInvestors);
 
         toast({
@@ -529,11 +487,9 @@ const HomePage = () => {
       }
     } else if (action === "check_expirations") {
       try {
-        // Create a copy of the investors array
         const updatedInvestors = [...investors];
         let expiredCount = 0;
 
-        // Check for expired KYC
         for (const investor of updatedInvestors) {
           if (investor.kycStatus === "Verified" && investor.kycExpiryDate) {
             if (investor.kycExpiryDate.getTime() < Date.now()) {
@@ -543,7 +499,6 @@ const HomePage = () => {
           }
         }
 
-        // Update state
         setInvestors(updatedInvestors);
 
         if (expiredCount > 0) {
@@ -591,16 +546,13 @@ const HomePage = () => {
         setSelectedInvestorForAllocation(id);
         setShowTokenDialog(true);
       } else if (action === "confirm") {
-        // Create a copy of the investors array
         const updatedInvestors = [...investors];
         const investorIndex = updatedInvestors.findIndex((i) => i.id === id);
 
         if (investorIndex !== -1) {
-          // Update unconfirmed subscriptions
           for (const sub of updatedInvestors[investorIndex].subscriptions) {
             if (!sub.confirmed && sub.id) {
               try {
-                // Update subscription in database
                 await confirmSubscription(sub.id);
                 sub.confirmed = true;
               } catch (confirmError) {
@@ -608,12 +560,10 @@ const HomePage = () => {
                   "Error confirming subscription in database:",
                   confirmError,
                 );
-                // Continue with other subscriptions even if one fails
               }
             }
           }
 
-          // Update state
           setInvestors(updatedInvestors);
 
           toast({
@@ -622,19 +572,14 @@ const HomePage = () => {
           });
         }
       } else if (action === "distribute") {
-        // Create a copy of the investors array
         const updatedInvestors = [...investors];
         const investorIndex = updatedInvestors.findIndex((i) => i.id === id);
 
         if (investorIndex !== -1) {
-          // Update allocated but not distributed subscriptions
           for (const sub of updatedInvestors[investorIndex].subscriptions) {
             if (sub.allocated && !sub.distributed && sub.tokenAllocationId) {
               try {
-                // Generate a mock transaction hash
                 const txHash = `0x${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
-
-                // Update token allocation in database
                 await distributeTokens(sub.tokenAllocationId, txHash);
                 sub.distributed = true;
               } catch (distributeError) {
@@ -642,12 +587,10 @@ const HomePage = () => {
                   "Error distributing tokens in database:",
                   distributeError,
                 );
-                // Continue with other subscriptions even if one fails
               }
             }
           }
 
-          // Update state
           setInvestors(updatedInvestors);
 
           toast({
@@ -656,23 +599,16 @@ const HomePage = () => {
           });
         }
       } else if (action === "screen") {
-        // Create a copy of the investors array
         const updatedInvestors = [...investors];
         const investorIndex = updatedInvestors.findIndex((i) => i.id === id);
 
         if (investorIndex !== -1) {
-          // Calculate expiry date (6 months from now)
           const expiryDate = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
 
           try {
-            // Update KYC status in database
             await updateInvestorKYC(id, "Verified", expiryDate.toISOString());
-
-            // Update local state
             updatedInvestors[investorIndex].kycStatus = "Verified";
             updatedInvestors[investorIndex].kycExpiryDate = expiryDate;
-
-            // Update state
             setInvestors(updatedInvestors);
 
             toast({
@@ -693,6 +629,47 @@ const HomePage = () => {
         if (investor) {
           setSelectedInvestor(investor);
           setShowInvestorDialog(true);
+        }
+      } else if (action === "edit") {
+        const investor = investors.find((i) => i.id === id);
+        if (investor) {
+          setSelectedInvestor(investor);
+          setShowEditInvestorDialog(true);
+        }
+      } else if (action === "remove_from_cap_table") {
+        if (!selectedCapTable) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No cap table selected",
+          });
+          return;
+        }
+
+        try {
+          // Remove investor from cap table in database
+          const { error } = await supabase
+            .from("cap_table_investors")
+            .delete()
+            .eq("cap_table_id", selectedCapTable.id)
+            .eq("investor_id", id);
+
+          if (error) throw error;
+
+          // Remove investor from local state
+          setInvestors((prev) => prev.filter((investor) => investor.id !== id));
+
+          toast({
+            title: "Success",
+            description: "Investor removed from cap table",
+          });
+        } catch (removeError) {
+          console.error("Error removing investor from cap table:", removeError);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to remove investor from cap table",
+          });
         }
       }
     } catch (error) {
@@ -730,11 +707,9 @@ const HomePage = () => {
         }}
         onBulkAction={handleBulkAction}
         onSearch={(query) => {
-          // Implement search functionality here
           console.log("Search query:", query);
         }}
         onFilter={() => {
-          // Open filter dialog
           console.log("Open filter dialog");
         }}
         projects={projects}
@@ -802,55 +777,255 @@ const HomePage = () => {
       <CSVUploadDialog
         open={showCSVDialog}
         onClose={() => setShowCSVDialog(false)}
-        validationErrors={[]}
-        validationWarnings={[]}
+        validationErrors={csvValidationErrors}
+        validationWarnings={csvValidationWarnings}
         isValidating={isValidatingCSV}
         onUpload={async (file) => {
+          if (!selectedProject || !selectedCapTable) {
+            toast({
+              variant: "destructive",
+              title: "Selection Required",
+              description:
+                "Please select a project and cap table before uploading investors",
+            });
+            setShowCSVDialog(false);
+            return;
+          }
           try {
             setIsValidatingCSV(true);
             setCSVValidationErrors([]);
             setCSVValidationWarnings([]);
 
-            // Parse the CSV file without validation
-            const { data } = await parseCSV(file, "investor");
+            console.log("Starting CSV upload process for file:", file.name);
 
-            // For demo purposes, we'll simulate a successful import
-            setIsValidatingCSV(false);
-            setShowCSVDialog(false);
+            const {
+              getOrCreateInvestorGroup,
+              associateInvestorWithGroup,
+              associateInvestorWithCapTable,
+            } = await import("@/lib/investorGroupUtils");
+            console.log(
+              "Getting or creating investor group for project:",
+              selectedProject.id,
+            );
+            const groupId = await getOrCreateInvestorGroup(selectedProject.id);
+            console.log("Investor group ID:", groupId);
 
-            // Process the actual data from the CSV
-            const newInvestors = data.map((row: any) => {
-              // Map CSV data to investor structure
-              return {
-                id: `inv-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                name: row.name,
-                email: row.email,
-                type: row.type || "Individual",
-                kycStatus: row["kyc status"] || "Pending",
-                wallet: row.wallet,
-                kycExpiryDate:
-                  row["kyc status"] === "Verified"
-                    ? new Date(Date.now() + 180 * 24 * 60 * 60 * 1000)
+            const csvParser = await import("@/lib/csvParser");
+            const { data, errors, warnings } =
+              await csvParser.parseCSVFile(file);
+            console.log("Raw parsed CSV data:", JSON.stringify(data, null, 2));
+            console.log("CSV parsing errors:", errors);
+            console.log("CSV parsing warnings:", warnings);
+
+            // Verify we have actual data to process
+            if (!data || data.length === 0) {
+              setCSVValidationErrors(["No valid data found in CSV file"]);
+              setIsValidatingCSV(false);
+              toast({
+                variant: "destructive",
+                title: "CSV Error",
+                description: "No valid data found in the uploaded file.",
+              });
+              return;
+            }
+
+            // Check the first row to see if we have the expected fields
+            const firstRow = data[0];
+            console.log("First row keys:", Object.keys(firstRow));
+            if (!firstRow.name && !firstRow.email && !firstRow.wallet) {
+              setCSVValidationErrors([
+                "CSV headers not recognized. Make sure your CSV has headers: Name, Email, Type, Wallet, KYC Status, Last Updated",
+              ]);
+              setIsValidatingCSV(false);
+              toast({
+                variant: "destructive",
+                title: "CSV Format Error",
+                description: "Headers not recognized. Check the CSV format.",
+              });
+              return;
+            }
+
+            if (errors.length > 0) {
+              setCSVValidationErrors(errors);
+              toast({
+                variant: "destructive",
+                title: "CSV Validation Errors",
+                description: `${errors.length} errors found in CSV file.`,
+              });
+              setIsValidatingCSV(false);
+              return;
+            }
+
+            if (warnings.length > 0) {
+              setCSVValidationWarnings(warnings);
+              console.log("Warnings set:", warnings);
+            }
+
+            if (!data || data.length === 0) {
+              throw new Error("No data parsed from CSV file");
+            }
+
+            const newInvestors: Investor[] = [];
+            const processingErrors: string[] = [];
+
+            console.log("Processing", data.length, "rows from CSV");
+            for (let i = 0; i < data.length; i++) {
+              const row = data[i];
+              console.log(
+                `Processing row ${i + 1}:`,
+                JSON.stringify(row, null, 2),
+              );
+
+              try {
+                // Generate a unique investor_id first
+                const investor_id = uuidv4();
+                console.log(`Generated investor_id: ${investor_id}`);
+
+                // Log the exact row data to debug field access
+                console.log("Row data for investor creation:", row);
+                console.log("Row name field:", row.name);
+                console.log("Row email field:", row.email);
+                console.log("Row type field:", row.type);
+                console.log("Row kyc status field:", row["kyc status"]);
+                console.log("Row wallet field:", row.wallet);
+
+                // Make sure we have actual values and not empty strings
+                const name =
+                  row.name && row.name.trim() !== ""
+                    ? row.name
+                    : "Unknown Investor";
+                const email =
+                  row.email && row.email.trim() !== ""
+                    ? row.email
+                    : "unknown@example.com";
+                const type =
+                  row.type && row.type.trim() !== "" ? row.type : "Individual";
+                const kycStatus =
+                  row["kyc status"] && row["kyc status"].trim() !== ""
+                    ? row["kyc status"]
+                    : "Pending";
+                const wallet =
+                  row.wallet && row.wallet.trim() !== ""
+                    ? row.wallet
+                    : "0x0000000000000000000000000000000000000000";
+
+                const investorDataPayload = {
+                  name: name,
+                  email: email,
+                  type: type,
+                  kyc_status: kycStatus,
+                  wallet_address: wallet,
+                  kyc_expiry_date:
+                    kycStatus === "Verified"
+                      ? new Date(
+                          Date.now() + 180 * 24 * 60 * 60 * 1000,
+                        ).toISOString()
+                      : null,
+                  investor_id: investor_id,
+                };
+                console.log(
+                  "Inserting investor into Supabase:",
+                  JSON.stringify(investorDataPayload, null, 2),
+                );
+
+                const { data: investorData, error: investorError } =
+                  await supabase
+                    .from("investors")
+                    .insert(investorDataPayload)
+                    .select()
+                    .single();
+
+                if (investorError) {
+                  console.error(`Row ${i + 1} insert error:`, investorError);
+                  console.log(
+                    "Full error details:",
+                    JSON.stringify(investorError, null, 2),
+                  );
+                  throw new Error(investorError.message);
+                }
+                console.log(`Investor inserted with ID: ${investorData.id}`);
+
+                console.log(
+                  `Associating investor ${investorData.id} with group ${groupId}, investor_id: ${investorData.investor_id}`,
+                );
+                await associateInvestorWithGroup(investorData.id, groupId);
+
+                console.log(
+                  `Associating investor ${investorData.id} with cap table ${selectedCapTable.id}`,
+                );
+                await associateInvestorWithCapTable(
+                  investorData.id,
+                  selectedCapTable.id,
+                );
+
+                const newInvestor = {
+                  id: investorData.investor_id,
+                  name: investorData.name,
+                  email: investorData.email,
+                  type: investorData.type,
+                  kycStatus: investorData.kyc_status,
+                  wallet: investorData.wallet_address,
+                  kycExpiryDate: investorData.kyc_expiry_date
+                    ? new Date(investorData.kyc_expiry_date)
                     : undefined,
-                selected: false,
-                subscriptions: [],
-              };
-            });
+                  selected: false,
+                  subscriptions: [],
+                };
+                console.log("Adding new investor to state:", newInvestor);
+                newInvestors.push(newInvestor);
+              } catch (err: any) {
+                const errorMsg = `Row ${i + 1}: ${err.message}`;
+                console.error(errorMsg);
+                processingErrors.push(errorMsg);
+              }
+            }
 
-            // Add to existing investors
-            setInvestors((prev) => [...prev, ...newInvestors]);
-
-            toast({
-              title: "Success",
-              description: `${newInvestors.length} investors imported successfully`,
-            });
-          } catch (error) {
-            console.error("Error uploading investors:", error);
             setIsValidatingCSV(false);
+
+            if (processingErrors.length > 0) {
+              setCSVValidationErrors(processingErrors);
+              toast({
+                variant: "warning",
+                title: "Partial Import Success",
+                description: `Imported ${newInvestors.length} investors with ${processingErrors.length} errors.`,
+              });
+            } else if (newInvestors.length > 0) {
+              toast({
+                title: "Success",
+                description: `${newInvestors.length} investors imported successfully to ${selectedCapTable?.name}`,
+              });
+            } else {
+              toast({
+                variant: "warning",
+                title: "No Data Imported",
+                description: "No valid investor data was found in the CSV.",
+              });
+            }
+
+            if (newInvestors.length > 0) {
+              console.log(
+                "Updating investors state with",
+                newInvestors.length,
+                "new investors",
+              );
+              setInvestors((prev) => {
+                const updated = [...prev, ...newInvestors];
+                console.log("New investors state:", updated);
+                return updated;
+              });
+            } else {
+              console.log("No new investors to add to state");
+            }
+
+            setShowCSVDialog(false);
+          } catch (error: any) {
+            console.error("Fatal error during upload:", error);
+            setIsValidatingCSV(false);
+            setCSVValidationErrors([`Fatal error: ${error.message}`]);
             toast({
               variant: "destructive",
               title: "Error",
-              description: "Failed to import investors",
+              description: `Failed to import investors: ${error.message}`,
             });
           }
         }}
@@ -872,7 +1047,6 @@ const HomePage = () => {
             setSubValidationErrors([]);
             setSubValidationWarnings([]);
 
-            // Parse and validate the CSV file
             const { data, errors, warnings } = await parseCSV(
               file,
               "subscription",
@@ -883,24 +1057,20 @@ const HomePage = () => {
 
             if (errors.length > 0) {
               setIsValidatingSub(false);
-              return; // Don't proceed if there are validation errors
+              return;
             }
 
-            // For demo purposes, we'll simulate a successful import
             setIsValidatingSub(false);
             setShowSubscriptionUploadDialog(false);
 
-            // Add subscriptions to investors based on the CSV data
             const updatedInvestors = [...investors];
             const successCount =
-              data.length || Math.floor(Math.random() * 5) + 3; // Use actual data length or fallback
+              data.length || Math.floor(Math.random() * 5) + 3;
             const currencies = ["USD", "EUR", "GBP"];
             let addedCount = 0;
 
-            // If we have actual data, try to match investor names
             if (data.length > 0) {
               for (const row of data) {
-                // Find the investor by name
                 const investorIndex = updatedInvestors.findIndex(
                   (inv) =>
                     inv.name.toLowerCase() ===
@@ -908,7 +1078,6 @@ const HomePage = () => {
                 );
 
                 if (investorIndex !== -1) {
-                  // Add subscription to the found investor
                   const investor = updatedInvestors[investorIndex];
                   const newSubscription = {
                     id: `sub-new-${Date.now()}-${addedCount}`,
@@ -936,16 +1105,13 @@ const HomePage = () => {
               }
             }
 
-            // If no subscriptions were added from the data, add some random ones
             if (addedCount === 0) {
               for (let i = 0; i < successCount; i++) {
-                // Pick a random investor
                 const randomIndex = Math.floor(
                   Math.random() * updatedInvestors.length,
                 );
                 const investor = updatedInvestors[randomIndex];
 
-                // Add a new subscription
                 const newSubscription = {
                   id: `sub-new-${Date.now()}-${i}`,
                   subscriptionId: `SUB-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
@@ -1046,32 +1212,27 @@ const HomePage = () => {
             const selectedInvestors = investors.filter((i) => i.selected);
             const updatedInvestors = [...investors];
 
-            // Create subscriptions for each selected investor
             for (const investor of selectedInvestors) {
-              // Find the investor in the updated array
               const updatedInvestor = updatedInvestors.find(
                 (i) => i.id === investor.id,
               );
               if (!updatedInvestor) continue;
 
-              // Generate a unique subscription ID if not provided
               const subscriptionId =
                 subscriptionData.subscriptionId ||
                 `SUB-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
 
               try {
-                // Create subscription in the database
                 const newSubId = await createSubscription(
                   investor.id,
                   subscriptionId,
                   subscriptionData.fiatAmount.amount,
                   subscriptionData.fiatAmount.currency,
-                  false, // not confirmed initially
+                  false,
                   subscriptionData.notes,
                   new Date().toISOString(),
                 );
 
-                // Add the new subscription to the local state
                 updatedInvestor.subscriptions.push({
                   id: newSubId,
                   subscriptionId: subscriptionId,
@@ -1089,11 +1250,9 @@ const HomePage = () => {
                   "Error creating subscription in database:",
                   subError,
                 );
-                // Continue with other investors even if one fails
               }
             }
 
-            // Update state
             setInvestors(updatedInvestors);
 
             toast({
@@ -1112,14 +1271,74 @@ const HomePage = () => {
       />
 
       {selectedInvestor && (
-        <InvestorDetailsDialog
-          open={showInvestorDialog}
-          onOpenChange={(open) => {
-            setShowInvestorDialog(open);
-            if (!open) setSelectedInvestor(null);
-          }}
-          investor={selectedInvestor}
-        />
+        <>
+          <InvestorDetailsDialog
+            open={showInvestorDialog}
+            onOpenChange={(open) => {
+              setShowInvestorDialog(open);
+              if (!open) setSelectedInvestor(null);
+            }}
+            investor={selectedInvestor}
+          />
+
+          <EditInvestorDialog
+            open={showEditInvestorDialog}
+            onOpenChange={(open) => {
+              setShowEditInvestorDialog(open);
+              if (!open) setSelectedInvestor(null);
+            }}
+            investor={selectedInvestor}
+            onUpdate={(updatedInvestor) => {
+              // Update investor in local state
+              setInvestors((prev) =>
+                prev.map((inv) =>
+                  inv.id === updatedInvestor.id ? updatedInvestor : inv,
+                ),
+              );
+            }}
+            onRemoveFromCapTable={(investorId) => {
+              if (!selectedCapTable) {
+                toast({
+                  variant: "destructive",
+                  title: "Error",
+                  description: "No cap table selected",
+                });
+                return;
+              }
+
+              // Remove investor from cap table in database
+              supabase
+                .from("cap_table_investors")
+                .delete()
+                .eq("cap_table_id", selectedCapTable.id)
+                .eq("investor_id", investorId)
+                .then(({ error }) => {
+                  if (error) {
+                    console.error(
+                      "Error removing investor from cap table:",
+                      error,
+                    );
+                    toast({
+                      variant: "destructive",
+                      title: "Error",
+                      description: "Failed to remove investor from cap table",
+                    });
+                    return;
+                  }
+
+                  // Remove investor from local state
+                  setInvestors((prev) =>
+                    prev.filter((investor) => investor.id !== investorId),
+                  );
+
+                  toast({
+                    title: "Success",
+                    description: "Investor removed from cap table",
+                  });
+                });
+            }}
+          />
+        </>
       )}
 
       <BatchDistributionDialog
@@ -1140,14 +1359,12 @@ const HomePage = () => {
             })),
           }))}
         onConfirm={(investorIds) => {
-          // Calculate distribution data for confirmation dialog
           const selectedInvestors = investors.filter((i) =>
             investorIds.includes(i.id),
           );
           const tokenTypes = new Set<string>();
           let totalTokens = 0;
 
-          // Calculate total tokens and collect token types
           for (const investor of selectedInvestors) {
             for (const subscription of investor.subscriptions) {
               if (
@@ -1163,14 +1380,12 @@ const HomePage = () => {
             }
           }
 
-          // Store distribution data for confirmation dialog
           setPendingDistributionData({
             investorIds,
             totalTokens,
             tokenTypes: Array.from(tokenTypes),
           });
 
-          // Show confirmation dialog
           setShowDistributionConfirmationDialog(true);
         }}
       />
@@ -1203,15 +1418,12 @@ const HomePage = () => {
             let totalDistributed = 0;
             let transactionCount = 0;
 
-            // Simulate a more realistic distribution process with delays
-            // to mimic blockchain transaction times
             for (const investorId of selectedInvestorIds) {
               const investorIndex = updatedInvestors.findIndex(
                 (i) => i.id === investorId,
               );
               if (investorIndex === -1) continue;
 
-              // Count how many distributions we'll do for this investor
               const distributionsToProcess = updatedInvestors[
                 investorIndex
               ].subscriptions.filter(
@@ -1220,14 +1432,11 @@ const HomePage = () => {
               ).length;
 
               if (distributionsToProcess > 0) {
-                // Add a small delay to simulate blockchain transaction time
-                // Larger delays for investors with more distributions
                 await new Promise((resolve) =>
                   setTimeout(resolve, 100 * distributionsToProcess),
                 );
               }
 
-              // Update subscriptions
               updatedInvestors[investorIndex].subscriptions = updatedInvestors[
                 investorIndex
               ].subscriptions.map((sub) => {
@@ -1236,7 +1445,6 @@ const HomePage = () => {
                   !sub.distributed &&
                   sub.tokenAllocationId
                 ) {
-                  // Count tokens distributed and transactions
                   totalDistributed += sub.tokenAllocation || 0;
                   transactionCount++;
                   return { ...sub, distributed: true };
@@ -1250,7 +1458,6 @@ const HomePage = () => {
               );
             }
 
-            // Update state
             setInvestors(updatedInvestors);
 
             toast({
@@ -1258,7 +1465,6 @@ const HomePage = () => {
               description: `${totalDistributed.toLocaleString()} tokens distributed to ${selectedInvestorIds.length} investors in ${transactionCount} transactions`,
             });
 
-            // Reset pending distribution data
             setPendingDistributionData(null);
             return;
           } catch (error) {
@@ -1288,34 +1494,26 @@ const HomePage = () => {
           }))}
         onConfirm={(allocations) => {
           try {
-            // Get selected investors
             const selectedInvestors = investors.filter(
               (investor) => investor.selected,
             );
-
-            // Create a copy of the investors array to update
             const updatedInvestors = [...investors];
 
-            // For each investor, create token allocations
             for (const investor of selectedInvestors) {
-              // Find the investor in the updated array
               const updatedInvestor = updatedInvestors.find(
                 (i) => i.id === investor.id,
               );
               if (!updatedInvestor) continue;
 
-              // For each subscription that doesn't have an allocation
               let allocationIndex = 0;
               for (let i = 0; i < updatedInvestor.subscriptions.length; i++) {
                 const subscription = updatedInvestor.subscriptions[i];
                 if (!subscription.allocated && subscription.confirmed) {
-                  // Get the next allocation in sequence
                   const allocation =
                     allocations[allocationIndex % allocations.length];
                   allocationIndex++;
 
                   if (allocation) {
-                    // Update the subscription with allocation details
                     subscription.allocated = true;
                     subscription.tokenType = allocation.tokenType;
                     subscription.tokenAllocation = allocation.amount;
@@ -1325,7 +1523,6 @@ const HomePage = () => {
               }
             }
 
-            // Update the state with the modified investors
             setInvestors(updatedInvestors);
 
             toast({
@@ -1343,21 +1540,18 @@ const HomePage = () => {
         }}
         onRemoveAllocations={() => {
           try {
-            // Create a copy of the investors array
             const updatedInvestors = [...investors];
             const selectedInvestorIds = investors
               .filter((i) => i.selected)
               .map((i) => i.id);
             let removedCount = 0;
 
-            // For each selected investor, remove allocations
             for (const investorId of selectedInvestorIds) {
               const investorIndex = updatedInvestors.findIndex(
                 (i) => i.id === investorId,
               );
               if (investorIndex === -1) continue;
 
-              // Update subscriptions to remove allocations
               updatedInvestors[investorIndex].subscriptions = updatedInvestors[
                 investorIndex
               ].subscriptions.map((sub) => {
@@ -1375,7 +1569,6 @@ const HomePage = () => {
               });
             }
 
-            // Update state
             setInvestors(updatedInvestors);
 
             toast({
@@ -1405,10 +1598,8 @@ const HomePage = () => {
         }}
         onConfirmSubscriptions={(subscriptionIds) => {
           try {
-            // Create a copy of the investors array
             const updatedInvestors = [...investors];
 
-            // For each investor, update the specified subscriptions
             for (const investor of updatedInvestors) {
               investor.subscriptions = investor.subscriptions.map((sub) => {
                 if (sub.id && subscriptionIds.includes(sub.id)) {
@@ -1418,7 +1609,6 @@ const HomePage = () => {
               });
             }
 
-            // Update state
             setInvestors(updatedInvestors);
 
             toast({
@@ -1436,17 +1626,14 @@ const HomePage = () => {
         }}
         onRemoveSubscriptions={(subscriptionIds) => {
           try {
-            // Create a copy of the investors array
             const updatedInvestors = [...investors];
 
-            // For each investor, remove the specified subscriptions
             for (const investor of updatedInvestors) {
               investor.subscriptions = investor.subscriptions.filter(
                 (sub) => !sub.id || !subscriptionIds.includes(sub.id),
               );
             }
 
-            // Update state
             setInvestors(updatedInvestors);
 
             toast({
@@ -1473,10 +1660,8 @@ const HomePage = () => {
         }
         onSave={(updatedSubscription) => {
           try {
-            // Create a copy of the investors array
             const updatedInvestors = [...investors];
 
-            // Find the investor and update the subscription
             const investorIndex = updatedInvestors.findIndex(
               (i) => i.id === selectedSubscriptionInvestorId,
             );
@@ -1486,7 +1671,6 @@ const HomePage = () => {
               ].subscriptions.findIndex((s) => s.id === updatedSubscription.id);
 
               if (subscriptionIndex !== -1) {
-                // Update the subscription
                 updatedInvestors[investorIndex].subscriptions[
                   subscriptionIndex
                 ] = {
@@ -1501,7 +1685,6 @@ const HomePage = () => {
               }
             }
 
-            // Update state
             setInvestors(updatedInvestors);
             setSelectedSubscription(null);
             setSelectedSubscriptionInvestorId("");
@@ -1521,10 +1704,8 @@ const HomePage = () => {
         }}
         onDelete={(subscriptionId) => {
           try {
-            // Create a copy of the investors array
             const updatedInvestors = [...investors];
 
-            // Find the investor and remove the subscription
             const investorIndex = updatedInvestors.findIndex(
               (i) => i.id === selectedSubscriptionInvestorId,
             );
@@ -1534,7 +1715,6 @@ const HomePage = () => {
               ].subscriptions.filter((s) => s.id !== subscriptionId);
             }
 
-            // Update state
             setInvestors(updatedInvestors);
             setSelectedSubscription(null);
             setSelectedSubscriptionInvestorId("");
@@ -1560,9 +1740,7 @@ const HomePage = () => {
         investors={investors}
         onExport={(options) => {
           try {
-            // Generate the CSV data with the selected options
             const csv = generateCSVFromInvestors(
-              // If no investors are selected, export all investors
               investors.filter((i) => i.selected).length > 0
                 ? investors.filter((i) => i.selected)
                 : investors,
@@ -1574,7 +1752,6 @@ const HomePage = () => {
               },
             );
 
-            // Download the CSV file
             downloadCSV(
               csv,
               `cap-table-export-${new Date().toISOString().split("T")[0]}.csv`,

@@ -10,7 +10,6 @@ import { Input } from "./ui/input";
 import {
   Coins,
   Download,
-  Filter,
   MoreVertical,
   Plus,
   RefreshCw,
@@ -19,7 +18,6 @@ import {
   FileSpreadsheet,
   Check,
   X,
-  Search,
 } from "lucide-react";
 import CapTableSelector, { CapTable } from "./CapTableSelector";
 import ProjectSelector, { Project } from "./ProjectSelector";
@@ -94,14 +92,6 @@ const CapTableHeader = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={onDownloadTemplate}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Download Template
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
@@ -118,27 +108,6 @@ const CapTableHeader = ({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1 max-w-md relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            className="pl-10"
-            placeholder="Search investors..."
-            onChange={(e) => onSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={() => onFilter()}
-          >
-            <Filter className="h-4 w-4" />
-            Filter
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

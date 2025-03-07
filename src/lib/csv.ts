@@ -5,7 +5,12 @@ export const parseCSV = async (
   file: File,
   type: "investor" | "subscription" = "investor",
 ): Promise<{ data: any[]; errors: string[]; warnings: string[] }> => {
+  console.log(
+    `Parsing ${type} CSV file: ${file.name}, size: ${file.size} bytes`,
+  );
   const text = await file.text();
+  console.log(`CSV content length: ${text.length} characters`);
+
   let rows: string[][] = [];
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -14,14 +19,19 @@ export const parseCSV = async (
   try {
     // Handle different CSV formats (comma, semicolon, tab)
     const firstLine = text.split("\n")[0];
+    console.log(`First line: ${firstLine}`);
+
     let delimiter = ",";
     if (firstLine.includes(";")) delimiter = ";";
     if (firstLine.includes("\t")) delimiter = "\t";
+    console.log(`Detected delimiter: "${delimiter}"`);
 
     rows = text
       .split("\n")
       .filter((line) => line.trim() !== "") // Skip empty lines
       .map((row) => row.split(delimiter));
+
+    console.log(`Found ${rows.length} rows in CSV`);
 
     if (rows.length === 0) {
       errors.push("CSV file is empty");
@@ -30,6 +40,7 @@ export const parseCSV = async (
 
     // Normalize headers (trim, lowercase)
     const headers = rows[0].map((header) => header.trim().toLowerCase());
+    console.log(`Headers: ${headers.join(", ")}`);
 
     // Check for required headers based on type
     if (type === "investor") {
@@ -38,7 +49,9 @@ export const parseCSV = async (
         (h) => !headers.includes(h),
       );
       if (missingHeaders.length > 0) {
-        errors.push(`Missing required headers: ${missingHeaders.join(", ")}`);
+        const error = `Missing required headers: ${missingHeaders.join(", ")}`;
+        console.error(error);
+        errors.push(error);
       }
 
       // Check for recommended headers
@@ -47,9 +60,9 @@ export const parseCSV = async (
         (h) => !headers.includes(h),
       );
       if (missingRecommendedHeaders.length > 0) {
-        warnings.push(
-          `Missing recommended headers: ${missingRecommendedHeaders.join(", ")}`,
-        );
+        const warning = `Missing recommended headers: ${missingRecommendedHeaders.join(", ")}`;
+        console.warn(warning);
+        warnings.push(warning);
       }
     } else if (type === "subscription") {
       const requiredHeaders = [
@@ -62,17 +75,32 @@ export const parseCSV = async (
         (h) => !headers.includes(h),
       );
       if (missingHeaders.length > 0) {
-        errors.push(`Missing required headers: ${missingHeaders.join(", ")}`);
+        const error = `Missing required headers: ${missingHeaders.join(", ")}`;
+        console.error(error);
+        errors.push(error);
       }
     }
 
-    if (errors.length > 0) return { data, errors, warnings };
+    if (errors.length > 0) {
+      console.error(
+        `Validation errors found, stopping processing: ${errors.join("; ")}`,
+      );
+      return { data, errors, warnings };
+    }
 
     // Process each row
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
+      console.log(`Processing row ${i}: ${row.join(", ")}`);
 
-      // Create object from row (skip validation for column count)
+      // Check if row has enough columns
+      if (row.length < headers.length) {
+        const warning = `Row ${i}: Has fewer columns (${row.length}) than headers (${headers.length})`;
+        console.warn(warning);
+        warnings.push(warning);
+      }
+
+      // Create object from row
       const rowObj: any = {};
       headers.forEach((header, index) => {
         // Handle quoted values
@@ -83,11 +111,37 @@ export const parseCSV = async (
         rowObj[header] = value;
       });
 
-      // Add all rows without validation
+      // Validate required fields for investor type
+      if (type === "investor") {
+        if (!rowObj.name) {
+          const warning = `Row ${i}: Missing name`;
+          console.warn(warning);
+          warnings.push(warning);
+        }
+        if (!rowObj.email) {
+          const warning = `Row ${i}: Missing email`;
+          console.warn(warning);
+          warnings.push(warning);
+        }
+        if (!rowObj.wallet) {
+          const warning = `Row ${i}: Missing wallet address`;
+          console.warn(warning);
+          warnings.push(warning);
+        }
+      }
+
+      // Add row to data array
       data.push(rowObj);
+      console.log(`Added row object:`, rowObj);
     }
+
+    console.log(
+      `Successfully parsed ${data.length} data rows with ${warnings.length} warnings`,
+    );
   } catch (error) {
-    errors.push(`Failed to parse CSV file: ${error.message}`);
+    const errorMsg = `Failed to parse CSV file: ${error.message}`;
+    console.error(errorMsg, error);
+    errors.push(errorMsg);
   }
 
   return { data, errors, warnings };

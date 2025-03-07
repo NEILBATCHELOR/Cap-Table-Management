@@ -19,6 +19,7 @@ import {
   Coins,
   RefreshCw,
   SendHorizonal,
+  Edit,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -44,7 +45,9 @@ interface InvestorTableRowProps {
       | "screen"
       | "allocate"
       | "remove_allocation"
-      | "remove_subscription",
+      | "remove_subscription"
+      | "edit"
+      | "remove_from_cap_table",
   ) => void;
 }
 
@@ -179,6 +182,13 @@ const InvestorTableRow = ({
         <Button variant="ghost" size="icon" onClick={() => onView(investor.id)}>
           <Eye className="h-4 w-4" />
         </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onAction(investor.id, "edit")}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -225,6 +235,14 @@ const InvestorTableRow = ({
             >
               <Ban className="mr-2 h-4 w-4" />
               Remove Subscription
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={() => onAction(investor.id, "remove_from_cap_table")}
+              className="text-red-600 hover:text-red-700"
+            >
+              <Ban className="mr-2 h-4 w-4" />
+              Remove from Cap Table
             </DropdownMenuItem>
 
             <DropdownMenuItem onClick={() => onAction(investor.id, "screen")}>

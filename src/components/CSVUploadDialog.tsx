@@ -49,19 +49,73 @@ const CSVUploadDialog = ({
 
   const generatePreview = async (file: File) => {
     try {
+      console.log("Generating preview for file:", file.name);
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target?.result as string;
-        const lines = text.split("\n").slice(0, 6); // Get first 6 lines for preview
-        const delimiter = lines[0].includes(",")
-          ? ","
-          : lines[0].includes(";")
-            ? ";"
-            : "\t";
+        console.log("Preview text length:", text.length);
 
-        const preview = lines.map((line) => line.split(delimiter));
+        if (!text || text.trim() === "") {
+          console.error("File appears to be empty");
+          return;
+        }
+
+        const lines = text
+          .split(/\r?\n/)
+          .filter((line) => line.trim() !== "")
+          .slice(0, 6); // Get first 6 lines for preview
+        console.log("Preview lines:", lines.length);
+
+        if (lines.length === 0) {
+          console.error("No valid lines found in file");
+          return;
+        }
+
+        // Detect delimiter more reliably
+        const firstLine = lines[0];
+        const commaCount = (firstLine.match(/,/g) || []).length;
+        const semicolonCount = (firstLine.match(/;/g) || []).length;
+        const tabCount = (firstLine.match(/\t/g) || []).length;
+
+        let delimiter = ",";
+        if (semicolonCount > commaCount && semicolonCount > tabCount)
+          delimiter = ";";
+        if (tabCount > commaCount && tabCount > semicolonCount)
+          delimiter = "\t";
+
+        console.log("Detected delimiter:", delimiter, "counts:", {
+          commaCount,
+          semicolonCount,
+          tabCount,
+        });
+
+        // Parse lines respecting quotes
+        const preview = lines.map((line) => {
+          const result = [];
+          let current = "";
+          let inQuotes = false;
+
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === delimiter && !inQuotes) {
+              result.push(current);
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          result.push(current);
+          return result;
+        });
+
+        console.log("Preview data:", preview);
         setPreviewData(preview);
         setShowPreview(true);
+      };
+      reader.onerror = (e) => {
+        console.error("Error reading file:", e);
       };
       reader.readAsText(file);
     } catch (error) {
@@ -71,7 +125,15 @@ const CSVUploadDialog = ({
 
   const handleUpload = () => {
     if (selectedFile) {
+      console.log(
+        "Uploading file:",
+        selectedFile.name,
+        selectedFile.size,
+        selectedFile.type,
+      );
       onUpload(selectedFile);
+    } else {
+      console.error("No file selected for upload");
     }
   };
 
@@ -95,8 +157,8 @@ const CSVUploadDialog = ({
         <DialogHeader>
           <DialogTitle>Upload Investor Data</DialogTitle>
           <DialogDescription>
-            Import investor data from a CSV file. Please ensure your file
-            follows the required format.
+            Import investor data from a CSV file. Investors will be added to the
+            currently selected project and cap table.
           </DialogDescription>
         </DialogHeader>
 
@@ -127,7 +189,12 @@ const CSVUploadDialog = ({
                   type="file"
                   accept=".csv,.txt"
                   onChange={handleFileChange}
+                  className="cursor-pointer"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Make sure your CSV file has the headers: Name, Email, Type,
+                  Wallet, KYC Status, Last Updated
+                </p>
               </div>
 
               {selectedFile && (
@@ -175,7 +242,36 @@ const CSVUploadDialog = ({
               </div>
             )}
 
-            {/* Validation errors and warnings removed */}
+            {validationErrors.length > 0 && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Validation Errors</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc pl-5 text-sm space-y-1 mt-2 max-h-[150px] overflow-y-auto">
+                    {validationErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {validationWarnings.length > 0 && (
+              <Alert
+                variant="warning"
+                className="bg-yellow-50 border-yellow-200 mt-4"
+              >
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertTitle className="text-yellow-800">Warnings</AlertTitle>
+                <AlertDescription className="text-yellow-700">
+                  <ul className="list-disc pl-5 text-sm space-y-1 mt-2 max-h-[100px] overflow-y-auto">
+                    {validationWarnings.map((warning, index) => (
+                      <li key={index}>{warning}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
           </TabsContent>
 
           <TabsContent value="format" className="space-y-4 py-4">

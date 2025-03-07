@@ -14,19 +14,19 @@ export type Database = {
           cap_table_id: string | null
           created_at: string | null
           id: string
-          investor_id: string | null
+          investor_id: string
         }
         Insert: {
           cap_table_id?: string | null
           created_at?: string | null
           id?: string
-          investor_id?: string | null
+          investor_id: string
         }
         Update: {
           cap_table_id?: string | null
           created_at?: string | null
           id?: string
-          investor_id?: string | null
+          investor_id?: string
         }
         Relationships: [
           {
@@ -35,6 +35,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cap_tables"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cap_table_investors_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "investor_subscriptions_view"
+            referencedColumns: ["investor_id"]
           },
           {
             foreignKeyName: "cap_table_investors_investor_id_fkey"
@@ -85,21 +92,32 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          project_id: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           name: string
+          project_id?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           name?: string
+          project_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "investor_groups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       investor_groups_investors: {
         Row: {
@@ -132,6 +150,13 @@ export type Database = {
             foreignKeyName: "investor_groups_investors_investor_id_fkey"
             columns: ["investor_id"]
             isOneToOne: false
+            referencedRelation: "investor_subscriptions_view"
+            referencedColumns: ["investor_id"]
+          },
+          {
+            foreignKeyName: "investor_groups_investors_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
             referencedRelation: "investors"
             referencedColumns: ["investor_id"]
           },
@@ -142,6 +167,7 @@ export type Database = {
           created_at: string | null
           email: string
           investor_id: string
+          kyc_expiry_date: string | null
           kyc_status: string
           lastUpdated: string | null
           name: string
@@ -154,6 +180,7 @@ export type Database = {
           created_at?: string | null
           email: string
           investor_id?: string
+          kyc_expiry_date?: string | null
           kyc_status: string
           lastUpdated?: string | null
           name: string
@@ -166,6 +193,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           investor_id?: string
+          kyc_expiry_date?: string | null
           kyc_status?: string
           lastUpdated?: string | null
           name?: string
@@ -211,6 +239,7 @@ export type Database = {
           id: string
           investor_id: string
           notes: string | null
+          project_id: string | null
           subscription_date: string | null
           subscription_id: string
           updated_at: string | null
@@ -225,6 +254,7 @@ export type Database = {
           id?: string
           investor_id: string
           notes?: string | null
+          project_id?: string | null
           subscription_date?: string | null
           subscription_id: string
           updated_at?: string | null
@@ -239,6 +269,7 @@ export type Database = {
           id?: string
           investor_id?: string
           notes?: string | null
+          project_id?: string | null
           subscription_date?: string | null
           subscription_id?: string
           updated_at?: string | null
@@ -248,8 +279,22 @@ export type Database = {
             foreignKeyName: "subscriptions_investor_id_fkey"
             columns: ["investor_id"]
             isOneToOne: false
+            referencedRelation: "investor_subscriptions_view"
+            referencedColumns: ["investor_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
             referencedRelation: "investors"
             referencedColumns: ["investor_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -491,7 +536,25 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      investor_subscriptions_view: {
+        Row: {
+          allocated: boolean | null
+          confirmed: boolean | null
+          currency: string | null
+          distributed: boolean | null
+          fiat_amount: number | null
+          investor_email: string | null
+          investor_id: string | null
+          investor_name: string | null
+          investor_type: string | null
+          kyc_status: string | null
+          subscription_id: string | null
+          token_amount: number | null
+          token_type: string | null
+          wallet_address: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
