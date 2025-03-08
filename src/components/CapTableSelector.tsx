@@ -68,6 +68,7 @@ const CapTableSelector = ({
       newCapTableDescription,
     );
 
+    // Create cap table in the database
     onCreateCapTable({
       name: newCapTableName,
       description: newCapTableDescription,

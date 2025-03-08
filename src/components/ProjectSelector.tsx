@@ -56,6 +56,7 @@ const ProjectSelector = ({
   const handleCreateProject = () => {
     if (!newProjectName.trim()) return;
 
+    // Create project in the database
     onCreateProject({
       name: newProjectName,
       description: newProjectDescription,

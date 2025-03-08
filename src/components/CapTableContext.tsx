@@ -100,6 +100,7 @@ export const CapTableProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(true);
       console.log("Fetching projects...");
 
+      // Query the projects table
       const { data, error } = await supabase
         .from("projects")
         .select("*")
@@ -150,6 +151,7 @@ export const CapTableProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(true);
       console.log(`Fetching cap tables for project ${projectId}...`);
 
+      // Query the cap_tables table
       const { data, error } = await supabase
         .from("cap_tables")
         .select("*")
@@ -276,6 +278,7 @@ export const CapTableProvider: React.FC<{ children: React.ReactNode }> = ({
   ) => {
     try {
       console.log("Creating new project:", project);
+      // Insert into projects table in the database
       const { data, error } = await supabase
         .from("projects")
         .insert({
@@ -285,7 +288,14 @@ export const CapTableProvider: React.FC<{ children: React.ReactNode }> = ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error creating project:", error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error("No data returned from project creation");
+      }
 
       const newProject: Project = {
         id: data.id,
@@ -319,20 +329,31 @@ export const CapTableProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateProject = async (project: Project) => {
     try {
-      console.log("Updating project:", project);
-      const { error } = await supabase
+      console.log("Updating project in database:", project);
+      const { error, data } = await supabase
         .from("projects")
         .update({
           name: project.name,
           description: project.description,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", project.id);
+        .eq("id", project.id)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error updating project:", error);
+        throw error;
+      }
 
       // Update local state immediately for better UX
-      const updatedProject = { ...project, updatedAt: new Date() };
+      const updatedProject = {
+        ...project,
+        updatedAt: new Date(),
+        name: data?.name || project.name,
+        description: data?.description || project.description,
+      };
+
       setProjects((prev) =>
         prev.map((p) => (p.id === project.id ? updatedProject : p)),
       );
@@ -369,17 +390,39 @@ export const CapTableProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
 
-      console.log("Deleting project:", projectId);
+      console.log("Deleting project from database:", projectId);
+
+      // First, delete all cap tables associated with this project
+      const { error: capTableDeleteError } = await supabase
+        .from("cap_tables")
+        .delete()
+        .eq("project_id", projectId);
+
+      if (capTableDeleteError) {
+        console.error(
+          "Error deleting associated cap tables:",
+          capTableDeleteError,
+        );
+        throw capTableDeleteError;
+      }
+
+      // Then delete the project itself
       const { error } = await supabase
         .from("projects")
         .delete()
         .eq("id", projectId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error deleting project:", error);
+        throw error;
+      }
 
       // Update local state immediately for better UX
       const updatedProjects = projects.filter((p) => p.id !== projectId);
       setProjects(updatedProjects);
+
+      // Also update cap tables state to remove any associated with this project
+      setCapTables(capTables.filter((ct) => ct.projectId !== projectId));
 
       // If the deleted project was selected, select another one
       if (selectedProject?.id === projectId && updatedProjects.length > 0) {
@@ -416,11 +459,12 @@ export const CapTableProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       console.log(
-        "Creating new cap table:",
+        "Creating new cap table in database:",
         capTable,
         "for project:",
         selectedProject.id,
       );
+      // Insert into cap_tables table in the database
       const { data, error } = await supabase
         .from("cap_tables")
         .insert({
@@ -431,7 +475,14 @@ export const CapTableProvider: React.FC<{ children: React.ReactNode }> = ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error creating cap table:", error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error("No data returned from cap table creation");
+      }
 
       const newCapTable: CapTable = {
         id: data.id,
@@ -466,20 +517,31 @@ export const CapTableProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateCapTable = async (capTable: CapTable) => {
     try {
-      console.log("Updating cap table:", capTable);
-      const { error } = await supabase
+      console.log("Updating cap table in database:", capTable);
+      const { error, data } = await supabase
         .from("cap_tables")
         .update({
           name: capTable.name,
           description: capTable.description,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", capTable.id);
+        .eq("id", capTable.id)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error updating cap table:", error);
+        throw error;
+      }
 
       // Update local state immediately for better UX
-      const updatedCapTable = { ...capTable, updatedAt: new Date() };
+      const updatedCapTable = {
+        ...capTable,
+        updatedAt: new Date(),
+        name: data?.name || capTable.name,
+        description: data?.description || capTable.description,
+      };
+
       setCapTables((prev) =>
         prev.map((ct) => (ct.id === capTable.id ? updatedCapTable : ct)),
       );
@@ -521,13 +583,32 @@ export const CapTableProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
 
-      console.log("Deleting cap table:", capTableId);
+      console.log("Deleting cap table from database:", capTableId);
+
+      // First, delete all investor associations with this cap table
+      const { error: investorAssocError } = await supabase
+        .from("cap_table_investors")
+        .delete()
+        .eq("cap_table_id", capTableId);
+
+      if (investorAssocError) {
+        console.error(
+          "Error deleting cap table investor associations:",
+          investorAssocError,
+        );
+        throw investorAssocError;
+      }
+
+      // Then delete the cap table itself
       const { error } = await supabase
         .from("cap_tables")
         .delete()
         .eq("id", capTableId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error deleting cap table:", error);
+        throw error;
+      }
 
       // Update local state immediately for better UX
       const updatedCapTables = capTables.filter((ct) => ct.id !== capTableId);
